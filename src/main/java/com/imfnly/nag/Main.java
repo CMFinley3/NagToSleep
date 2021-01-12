@@ -1,8 +1,8 @@
 package com.imfnly.nag;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -13,13 +13,27 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("Hello World!");
-        Button btn = new Button();
-        btn.setText("Say 'Hello World'");
-        btn.setOnAction(event -> System.out.println("Hello World!"));
+        Platform.setImplicitExit(false);
         StackPane root = new StackPane();
-        root.getChildren().add(btn);
         primaryStage.setScene(new Scene(root, 300, 250));
+        primaryStage.setOnCloseRequest(event -> {
+            primaryStage.hide();
+            event.consume();
+        });
         primaryStage.show();
+
+        TrayMenu menu = new TrayMenu("zzz.png");
+        menu.setClickAction(() -> Platform.runLater(() -> toggleVisibility(primaryStage)));
+        menu.addAction("Show", () -> Platform.runLater(() -> primaryStage.show()));
+        menu.addAction("Hide", () -> Platform.runLater(() -> primaryStage.hide()));
+        menu.addAction("Exit", () -> System.exit(0));
+    }
+
+    public static void toggleVisibility(Stage stage) {
+        if (stage.isShowing()) {
+            stage.hide();
+        } else {
+            stage.show();
+        }
     }
 }
