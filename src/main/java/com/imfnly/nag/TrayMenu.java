@@ -1,33 +1,28 @@
 package com.imfnly.nag;
 
-import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
-import java.awt.TrayIcon;
 
 public class TrayMenu {
 
     private PopupMenu popup;
-    private TrayIcon trayIcon;
 
-    public TrayMenu(String imageFileName, boolean addToSystemTray) {
+    public TrayMenu(boolean addToSystemTray) {
 
         popup = new PopupMenu();
-        Image image = Toolkit.getDefaultToolkit().getImage(imageFileName);
-        trayIcon = new TrayIcon(image, "Nag To Sleep", popup);
+        Main.TRAY_ICON.setPopupMenu(popup);
         if (addToSystemTray) {
             addToSystemTray();
         }
     }
 
-    public TrayMenu(String imageFileName) {
-        this(imageFileName, true);
+    public TrayMenu() {
+        this(true);
     }
 
     public void setClickAction(Runnable action) {
-        trayIcon.addActionListener(event -> action.run());
+        Main.TRAY_ICON.addActionListener(event -> action.run());
     }
 
     public void addAction(String item, Runnable action) {
@@ -39,7 +34,7 @@ public class TrayMenu {
     public void addToSystemTray() {
         if (SystemTray.isSupported()) {
             try {
-                SystemTray.getSystemTray().add(trayIcon);
+                SystemTray.getSystemTray().add(Main.TRAY_ICON);
             } catch (Exception e) {
                 System.err.println("Can't add to tray");
             }
