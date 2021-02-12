@@ -4,6 +4,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.TrayIcon.MessageType;
+import java.time.LocalTime;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -40,7 +41,10 @@ public class Main extends Application {
         menu.addAction("Hide", () -> Platform.runLater(() -> primaryStage.hide()));
         menu.addAction("Exit", () -> System.exit(0));
 
-        NagTimer timer = new NagTimer();
+        LocalTime nagTime = PropertiesWrapper.getTime(ETimeKeys.NAG);
+        LocalTime sleepTime = PropertiesWrapper.getTime(ETimeKeys.SLEEP);
+        LocalTime wakeTime = PropertiesWrapper.getTime(ETimeKeys.WAKE);
+        NagTimer timer = new NagTimer(nagTime, sleepTime, wakeTime);
         timer.start();
     }
 

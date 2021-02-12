@@ -1,57 +1,31 @@
 package com.imfnly.nag;
 
 import java.awt.TrayIcon.MessageType;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Properties;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class NagTimer {
 
     private static final long MINUTE_LENGTH = 60 * 1000;
-    private static final String PROPERTIES_FILE = "config.properties";
-    private static final String NAG_TIME_NAME = "nagTime";
-    private static final String SLEEP_TIME_NAME = "sleepTime";
-    private static final String WAKE_TIME_NAME = "wakeTime";
-    private static final LocalTime DEFAULT_NAG_TIME = LocalTime.of(23, 0);
-    private static final LocalTime DEFAULT_SLEEP_TIME = LocalTime.of(23, 30);
-    private static final LocalTime DEFAULT_WAKE_TIME = LocalTime.of(0, 0);
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
 
     private Timer timer;
     private LocalTime nagTime;
     private LocalTime sleepTime;
     private LocalTime wakeTime;
 
-    public NagTimer() throws IOException {
+    public NagTimer(LocalTime nagTime, LocalTime sleepTime, LocalTime wakeTime) {
         timer = new Timer();
+        this.nagTime = nagTime;
+        this.sleepTime = sleepTime;
+        this.wakeTime = wakeTime;
 
-        Properties properties = new Properties();
-        FileInputStream inputStream;
-        try {
-            inputStream = new FileInputStream(PROPERTIES_FILE);
-        } catch (FileNotFoundException e) {
-            FileOutputStream outputStream = new FileOutputStream(PROPERTIES_FILE);
-            properties.put(NAG_TIME_NAME, DEFAULT_NAG_TIME.toString());
-            properties.put(SLEEP_TIME_NAME, DEFAULT_SLEEP_TIME.toString());
-            properties.put(WAKE_TIME_NAME, DEFAULT_WAKE_TIME.toString());
-            properties.store(outputStream, "Saving Defaults");
-            inputStream = new FileInputStream(PROPERTIES_FILE);
+        if (betweenTwoTimes(sleepTime, wakeTime, nagTime)) {
+            throw new RuntimeException("Invalid time setup. NagTime is between sleep and wake time.");
         }
-
-        properties.load(inputStream);
-
-        nagTime = LocalTime.parse(properties.getProperty(NAG_TIME_NAME), DATE_TIME_FORMATTER);
-        sleepTime = LocalTime.parse(properties.getProperty(SLEEP_TIME_NAME), DATE_TIME_FORMATTER);
-        wakeTime = LocalTime.parse(properties.getProperty(WAKE_TIME_NAME), DATE_TIME_FORMATTER);
-
-        System.out.println("Times: " + nagTime + " " + sleepTime + " " + wakeTime);
-
     }
 
     public void start() {
@@ -70,8 +44,54 @@ public class NagTimer {
     }
 
     public void nagLogic() {
-        if (LocalTime.now().isAfter(nagTime)) {
-            Main.TRAY_ICON.displayMessage("HEY DIPSHIT", "GO TO SLEEP", MessageType.WARNING);
+        LocalTime now = LocalTime.now();
+        if (betweenTwoTimes(nagTime, sleepTime, now)) {
+
+            long minutesTillSleep = timeTillSleep(ChronoUnit.MINUTES);
+            String alertText = minutesTillSleep + " minutes till Sleep";
+
+            Main.TRAY_ICON.displayMessage(PropertiesWrapper.getNotificationString(), alertText, MessageType.INFO);
+        } else if (betweenTwoTimes(sleepTime, wakeTime, now)) {
+            String shutdownCmd = "shutdown -s";
+            try {
+                Runtime.getRuntime().exec(shutdownCmd);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+    }
+
+    private long timeTillSleep(TemporalUnit unit) {
+
+        LocalTime now = LocalTime.now();
+        long timeTillSleep;
+
+        if (now.isBefore(sleepTime)) {
+            timeTillSleep = now.until(sleepTime, unit);
+        } else {
+            timeTillSleep = now.until(LocalTime.MAX, unit) + LocalTime.MIN.until(sleepTime, unit);
+        }
+        return timeTillSleep;
+    }
+
+    /**
+     * This logic determines if the check is between the start and end time. If the
+     * end time was 12:01 am and the start time was 11:59 pm, 12:00 am should be
+     * considered between those, even though there shouldnt be a range between the
+     * start and end time.
+     * 
+     * @param start     - beginning of range
+     * @param end       - end of range
+     * @param checkTime - time to check if in range
+     * @return if start time is before end time, check needs to be after start AND
+     *         before end. if start time is after end time, check needs to be after
+     *         start OR before end
+     */
+    private static boolean betweenTwoTimes(LocalTime start, LocalTime end, LocalTime checkTime) {
+        if (start.isBefore(end))
+            return checkTime.isAfter(start) && checkTime.isBefore(end);
+        else if (start.isAfter(end))
+            return (checkTime.isAfter(start) || checkTime.isBefore(end));
+        return checkTime.equals(start);
     }
 }
