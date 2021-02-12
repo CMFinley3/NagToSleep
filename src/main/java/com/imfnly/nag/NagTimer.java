@@ -13,17 +13,11 @@ public class NagTimer {
     private static final long MINUTE_LENGTH = 60 * 1000;
 
     private Timer timer;
-    private LocalTime nagTime;
-    private LocalTime sleepTime;
-    private LocalTime wakeTime;
 
-    public NagTimer(LocalTime nagTime, LocalTime sleepTime, LocalTime wakeTime) {
+    public NagTimer() {
         timer = new Timer();
-        this.nagTime = nagTime;
-        this.sleepTime = sleepTime;
-        this.wakeTime = wakeTime;
 
-        if (betweenTwoTimes(sleepTime, wakeTime, nagTime)) {
+        if (betweenTwoTimes(ETimeKeys.SLEEP.getTime(), ETimeKeys.WAKE.getTime(), ETimeKeys.NAG.getTime())) {
             throw new RuntimeException("Invalid time setup. NagTime is between sleep and wake time.");
         }
     }
@@ -45,13 +39,13 @@ public class NagTimer {
 
     public void nagLogic() {
         LocalTime now = LocalTime.now();
-        if (betweenTwoTimes(nagTime, sleepTime, now)) {
+        if (betweenTwoTimes(ETimeKeys.NAG.getTime(), ETimeKeys.SLEEP.getTime(), now)) {
 
             long minutesTillSleep = timeTillSleep(ChronoUnit.MINUTES);
             String alertText = minutesTillSleep + " minutes till Sleep";
 
             Main.TRAY_ICON.displayMessage(PropertiesWrapper.getNotificationString(), alertText, MessageType.INFO);
-        } else if (betweenTwoTimes(sleepTime, wakeTime, now)) {
+        } else if (betweenTwoTimes(ETimeKeys.SLEEP.getTime(), ETimeKeys.WAKE.getTime(), now)) {
             String shutdownCmd = "shutdown -s";
             try {
                 Runtime.getRuntime().exec(shutdownCmd);
@@ -66,10 +60,10 @@ public class NagTimer {
         LocalTime now = LocalTime.now();
         long timeTillSleep;
 
-        if (now.isBefore(sleepTime)) {
-            timeTillSleep = now.until(sleepTime, unit);
+        if (now.isBefore(ETimeKeys.SLEEP.getTime())) {
+            timeTillSleep = now.until(ETimeKeys.SLEEP.getTime(), unit);
         } else {
-            timeTillSleep = now.until(LocalTime.MAX, unit) + LocalTime.MIN.until(sleepTime, unit);
+            timeTillSleep = now.until(LocalTime.MAX, unit) + LocalTime.MIN.until(ETimeKeys.SLEEP.getTime(), unit);
         }
         return timeTillSleep;
     }

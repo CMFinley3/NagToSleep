@@ -42,3 +42,4 @@ local.properties
 
 # NagToSleep specific
 config.properties
+/bin/

@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.DateTimeException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -42,6 +43,19 @@ public class PropertiesWrapper {
         return properties.getProperty(keyString);
     }
 
+    private boolean setProperty(String keyString, String valueString) {
+
+        FileOutputStream outputStream;
+        try {
+            outputStream = new FileOutputStream(PROPERTIES_FILE);
+            properties.setProperty(keyString, valueString);
+            properties.store(outputStream, "Saving Defaults");
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
+
     private static PropertiesWrapper getInstance() {
         if (INSTANCE == null) {
             try {
@@ -58,6 +72,16 @@ public class PropertiesWrapper {
         String valueString = getInstance().getProperty(keyString);
         LocalTime time = LocalTime.parse(valueString, DATE_TIME_FORMATTER);
         return time;
+    }
+
+    public static boolean setTime(ETimeKeys key, String timeString) {
+        try {
+            LocalTime.parse(timeString, DATE_TIME_FORMATTER);
+        } catch (DateTimeException exception) {
+            return false;
+        }
+
+        return getInstance().setProperty(key.getKey(), timeString);
     }
 
     public static String getNotificationString() {
